@@ -6,9 +6,12 @@ return [
 
     'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 
-    'allowed_origins' => [
-        env('FRONTEND_URL', 'http://localhost:3000'),
-    ],
+    // FRONTEND_URL aceita uma ou mais origens separadas por vírgula
+    // (ex.: "https://tok-stok.vercel.app,http://localhost:3000").
+    'allowed_origins' => array_filter(array_map(
+        'trim',
+        explode(',', env('FRONTEND_URL', 'http://localhost:3000'))
+    )),
 
     'allowed_origins_patterns' => [],
 
