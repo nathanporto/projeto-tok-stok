@@ -1,0 +1,50 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tokstok_backend
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: local
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: tokstok
+      DB_USERNAME: tokstok
+      DB_PASSWORD: tokstok_secret
+    volumes:
+      - ./backend:/var/www/html
+      - /var/www/html/vendor
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - tokstok_net
+
+  db:
+    image: postgres:16-alpine
+    container_name: tokstok_db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: tokstok
+      POSTGRES_USER: tokstok
+      POSTGRES_PASSWORD: tokstok_secret
+    volumes:
+      - tokstok_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tokstok -d tokstok"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tokstok_net
+
+volumes:
+  tokstok_db_data:
+
+networks:
+  tokstok_net:
+    driver: bridge
