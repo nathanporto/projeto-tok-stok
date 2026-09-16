@@ -1,5 +1,48 @@
-# Vue 3 + Vite
+# Tok&Stok — Sistema de Gestão de Estoque
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Monorepo (frontend + backend) do sistema de controle de estoque industrial, seguindo a mesma
+infraestrutura do projeto Veekar: **Nuxt 4 + Tailwind + Pinia** no front e **Laravel 12 + JWT +
+PostgreSQL** no back, orquestrados via Docker Compose.
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+## Estrutura
+
+```
+frontend/   Nuxt 4 (app/pages, app/layouts, app/stores, app/composables) — design system "Industry"
+backend/    Laravel 12 + tymon/jwt-auth — API REST em /api
+docker-compose.yml, Makefile
+```
+
+## Status atual
+
+- **Login**: funcional de ponta a ponta (Nuxt → API Laravel → JWT → PostgreSQL).
+- **Dashboard, Produtos, Categorias, Fornecedores, Movimentações, Histórico, Relatórios**: telas
+  completas no front, com dados em memória (mock) — CRUD ainda não persiste no backend. Serão
+  ligadas à API nas próximas etapas.
+
+## Como rodar
+
+1. Subir backend + banco:
+   ```bash
+   docker compose up -d --build
+   docker compose exec backend php artisan migrate --force
+   docker compose exec backend php artisan db:seed --force
+   ```
+   (ou `make up`, `make migrate`, `make seed`)
+
+2. Rodar o frontend:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+   Acesse http://localhost:3000.
+
+### Usuário de teste (seed)
+
+- **E-mail:** operador@fabrica.com.br
+- **Senha:** estoque123
+
+## Design
+
+Design system **Industry**: fundo claro, texto grafite, acento aço único, cartões "blueprint"
+(cantos retos, marcas de registro `+`). Todos os tokens em `frontend/app/assets/css/industry.css`.
