@@ -1,0 +1,40 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class Movimentacao extends Model
+{
+    protected $table = 'movimentacoes';
+
+    protected $fillable = [
+        'produto_id',
+        'fornecedor_id',
+        'user_id',
+        'tipo',
+        'quantidade',
+        'data',
+        'motivo',
+        'observacao',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'quantidade' => 'integer',
+            'data'       => 'date:Y-m-d',
+        ];
+    }
+
+    public function produto(): BelongsTo
+    {
+        return $this->belongsTo(Produto::class);
+    }
+
+    public function fornecedor(): BelongsTo
+    {
+        return $this->belongsTo(Fornecedor::class);
+    }
+}
