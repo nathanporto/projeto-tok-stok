@@ -1,55 +1,84 @@
 <script setup lang="ts">
-import { useEstoqueMock } from '~/composables/useEstoqueMock'
+import { useFornecedoresStore, type FornecedorPayload } from '~/stores/fornecedores'
 import type { Fornecedor } from '~/types'
 
-const { fornecedores } = useEstoqueMock()
+const store = useFornecedoresStore()
+const feedback = useFeedback()
 
 const busca = ref('')
-const filtrados = computed(() => {
-  const termo = busca.value.trim().toLowerCase()
-  if (!termo) return fornecedores.value
-  return fornecedores.value.filter(f => [f.nome, f.cnpj, f.email].join(' ').toLowerCase().includes(termo))
+let timer: ReturnType<typeof setTimeout> | undefined
+
+function carregar() {
+  store.fetchAll(busca.value.trim()).catch(feedback.erro)
+}
+
+watch(busca, () => {
+  clearTimeout(timer)
+  timer = setTimeout(carregar, 300)
 })
 
-const formAberto = ref(false)
-const form = ref<{ id: number | null; nome: string; cnpj: string; telefone: string; email: string }>(vazio())
+onMounted(carregar)
 
-function vazio() {
-  return { id: null, nome: '', cnpj: '', telefone: '', email: '' }
+const formAberto = ref(false)
+const salvando = ref(false)
+const editandoId = ref<number | null>(null)
+const form = ref<FornecedorPayload>(vazio())
+
+function vazio(): FornecedorPayload {
+  return { nome: '', cnpj: '', telefone: '', email: '' }
 }
 
 function novo() {
+  editandoId.value = null
   form.value = vazio()
   formAberto.value = true
 }
 
 function editar(f: Fornecedor) {
-  form.value = { ...f }
+  editandoId.value = f.id
+  form.value = { nome: f.nome, cnpj: f.cnpj ?? '', telefone: f.telefone ?? '', email: f.email ?? '' }
   formAberto.value = true
 }
 
-function salvar() {
-  if (!form.value.nome.trim()) return
-
-  if (form.value.id) {
-    const idx = fornecedores.value.findIndex(f => f.id === form.value.id)
-    if (idx !== -1) fornecedores.value[idx] = { ...fornecedores.value[idx], ...form.value }
-  } else {
-    const id = Math.max(0, ...fornecedores.value.map(f => f.id)) + 1
-    fornecedores.value.push({
-      id,
-      nome: form.value.nome.trim(),
-      cnpj: form.value.cnpj.trim(),
-      telefone: form.value.telefone.trim(),
-      email: form.value.email.trim(),
-    })
+async function salvar() {
+  salvando.value = true
+  const payload: FornecedorPayload = {
+    nome: form.value.nome,
+    cnpj: form.value.cnpj || null,
+    telefone: form.value.telefone || null,
+    email: form.value.email || null,
   }
-
-  formAberto.value = false
+  try {
+    if (editandoId.value) {
+      await store.update(editandoId.value, payload)
+      feedback.ok(`Fornecedor #${editandoId.value} alterado com sucesso.`)
+    } else {
+      const criado = await store.create(payload)
+      feedback.ok(`Fornecedor cadastrado com sucesso! ID gerado: ${criado.id}`)
+    }
+    formAberto.value = false
+    carregar()
+  } catch (e) {
+    feedback.erro(e)
+  } finally {
+    salvando.value = false
+  }
 }
 
-function excluir(f: Fornecedor) {
-  fornecedores.value = fornecedores.value.filter(x => x.id !== f.id)
+async function excluir(f: Fornecedor) {
+  if (!confirm(`Excluir o fornecedor "${f.nome}"?`)) return
+  try {
+    await store.remove(f.id)
+    feedback.ok(`Fornecedor ${f.nome} excluído.`)
+    carregar()
+  } catch (e) {
+    feedback.erro(e)
+  }
+}
+
+function limparFiltros() {
+  busca.value = ''
+  feedback.limpar()
 }
 </script>
 
@@ -60,7 +89,7 @@ function excluir(f: Fornecedor) {
     subtitle="Gerenciamento dos fornecedores cadastrados no sistema."
   >
     <template #actions>
-      <button type="button" class="btn btn-secondary" @click="busca = ''">Limpar filtros</button>
+      <button type="button" class="btn btn-secondary" @click="limparFiltros">Limpar filtros</button>
       <button type="button" class="btn btn-primary blueprint" @click="novo">
         <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
         + Cadastrar fornecedor
@@ -68,28 +97,30 @@ function excluir(f: Fornecedor) {
     </template>
   </PageHeader>
 
+  <AlertBar v-if="feedback.mensagem.value" :tipo="feedback.tipo.value" :mensagem="feedback.mensagem.value" @fechar="feedback.limpar" />
+
   <section class="block">
     <div class="block-head">
       <h6>Consultar fornecedores</h6>
       <input v-model="busca" class="input search" type="search" placeholder="Buscar por nome, CNPJ ou e-mail…">
-      <span class="block-head__meta">{{ filtrados.length }} de {{ fornecedores.length }} fornecedores</span>
+      <span class="block-head__meta">{{ store.fornecedores.length }} fornecedor(es)</span>
     </div>
 
     <form v-if="formAberto" class="card blueprint form" @submit.prevent="salvar">
       <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
       <div class="form-head">
-        <h3>{{ form.id ? `Alterar fornecedor #${form.id}` : 'Cadastrar fornecedor' }}</h3>
+        <h3>{{ editandoId ? `Alterar fornecedor #${editandoId}` : 'Cadastrar fornecedor' }}</h3>
         <span class="form-hint">Fornecedor.cadastrar() / alterar()</span>
       </div>
       <div class="form-grid">
-        <label class="field"><span>Nome</span><input v-model="form.nome" class="input" placeholder="Nome da empresa"></label>
-        <label class="field"><span>CNPJ</span><input v-model="form.cnpj" class="input" placeholder="00.000.000/0000-00"></label>
-        <label class="field"><span>Telefone</span><input v-model="form.telefone" class="input" placeholder="(11) 4321-0000"></label>
+        <label class="field"><span>Nome</span><input v-model="form.nome" class="input" required placeholder="Nome da empresa"></label>
+        <label class="field"><span>CNPJ</span><input v-model="form.cnpj" class="input" placeholder="00.000.000/0000-00" maxlength="18"></label>
+        <label class="field"><span>Telefone</span><input v-model="form.telefone" class="input" placeholder="(11) 4321-0000" maxlength="20"></label>
         <label class="field"><span>E-mail</span><input v-model="form.email" class="input" type="email" placeholder="contato@fornecedor.com.br"></label>
       </div>
       <div class="form-actions">
         <button type="button" class="btn btn-secondary" @click="formAberto = false">Cancelar</button>
-        <button type="submit" class="btn btn-primary">Salvar fornecedor</button>
+        <button type="submit" class="btn btn-primary" :disabled="salvando">{{ salvando ? 'Salvando...' : 'Salvar fornecedor' }}</button>
       </div>
     </form>
 
@@ -105,12 +136,12 @@ function excluir(f: Fornecedor) {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="f in filtrados" :key="f.id">
+        <tr v-for="f in store.fornecedores" :key="f.id">
           <td class="num muted">{{ f.id }}</td>
           <td class="strong">{{ f.nome }}</td>
-          <td class="small muted">{{ f.cnpj }}</td>
-          <td class="small">{{ f.telefone }}</td>
-          <td class="small muted">{{ f.email }}</td>
+          <td class="small muted">{{ f.cnpj || '—' }}</td>
+          <td class="small">{{ f.telefone || '—' }}</td>
+          <td class="small muted">{{ f.email || '—' }}</td>
           <td>
             <div class="row-actions">
               <button type="button" class="btn btn-ghost" @click="editar(f)">Alterar</button>
@@ -120,7 +151,9 @@ function excluir(f: Fornecedor) {
         </tr>
       </tbody>
     </table>
-    <p v-if="filtrados.length === 0" class="empty">Nenhum fornecedor encontrado com esse termo.</p>
+    <p v-if="!store.carregando && store.fornecedores.length === 0" class="empty">
+      {{ busca ? 'Nenhum fornecedor encontrado com esse termo.' : 'Nenhum fornecedor cadastrado ainda.' }}
+    </p>
   </section>
 </template>
 

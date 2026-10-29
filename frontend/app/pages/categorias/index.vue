@@ -1,49 +1,78 @@
 <script setup lang="ts">
-import { useEstoqueMock } from '~/composables/useEstoqueMock'
+import { useCategoriasStore, type CategoriaPayload } from '~/stores/categorias'
 import type { Categoria } from '~/types'
 
-const { categorias } = useEstoqueMock()
+const store = useCategoriasStore()
+const feedback = useFeedback()
 
 const busca = ref('')
-const filtradas = computed(() => {
-  const termo = busca.value.trim().toLowerCase()
-  if (!termo) return categorias.value
-  return categorias.value.filter(c => [c.nome, c.descricao].join(' ').toLowerCase().includes(termo))
+let timer: ReturnType<typeof setTimeout> | undefined
+
+function carregar() {
+  store.fetchAll(busca.value.trim()).catch(feedback.erro)
+}
+
+watch(busca, () => {
+  clearTimeout(timer)
+  timer = setTimeout(carregar, 300)
 })
 
-const formAberto = ref(false)
-const form = ref<{ id: number | null; nome: string; descricao: string; status: 'Ativa' | 'Inativa' }>(vazio())
+onMounted(carregar)
 
-function vazio() {
-  return { id: null, nome: '', descricao: '', status: 'Ativa' as const }
+const formAberto = ref(false)
+const salvando = ref(false)
+const editandoId = ref<number | null>(null)
+const form = ref<CategoriaPayload>(vazio())
+
+function vazio(): CategoriaPayload {
+  return { nome: '', descricao: '', status: 'ativa' }
 }
 
 function nova() {
+  editandoId.value = null
   form.value = vazio()
   formAberto.value = true
 }
 
 function editar(c: Categoria) {
-  form.value = { ...c }
+  editandoId.value = c.id
+  form.value = { nome: c.nome, descricao: c.descricao ?? '', status: c.status }
   formAberto.value = true
 }
 
-function salvar() {
-  if (!form.value.nome.trim()) return
-
-  if (form.value.id) {
-    const idx = categorias.value.findIndex(c => c.id === form.value.id)
-    if (idx !== -1) categorias.value[idx] = { ...categorias.value[idx], ...form.value }
-  } else {
-    const id = Math.max(0, ...categorias.value.map(c => c.id)) + 1
-    categorias.value.push({ id, nome: form.value.nome.trim(), descricao: form.value.descricao.trim(), status: form.value.status })
+async function salvar() {
+  salvando.value = true
+  try {
+    if (editandoId.value) {
+      await store.update(editandoId.value, form.value)
+      feedback.ok(`Categoria #${editandoId.value} alterada com sucesso.`)
+    } else {
+      const criada = await store.create(form.value)
+      feedback.ok(`Categoria cadastrada com sucesso! ID gerado: ${criada.id}`)
+    }
+    formAberto.value = false
+    carregar()
+  } catch (e) {
+    feedback.erro(e)
+  } finally {
+    salvando.value = false
   }
-
-  formAberto.value = false
 }
 
-function excluir(c: Categoria) {
-  categorias.value = categorias.value.filter(x => x.id !== c.id)
+async function excluir(c: Categoria) {
+  if (!confirm(`Excluir a categoria "${c.nome}"? Os produtos dela ficarão sem categoria.`)) return
+  try {
+    await store.remove(c.id)
+    feedback.ok(`Categoria ${c.nome} excluída.`)
+    carregar()
+  } catch (e) {
+    feedback.erro(e)
+  }
+}
+
+function limparFiltros() {
+  busca.value = ''
+  feedback.limpar()
 }
 </script>
 
@@ -54,7 +83,7 @@ function excluir(c: Categoria) {
     subtitle="Organize os produtos do estoque por categoria."
   >
     <template #actions>
-      <button type="button" class="btn btn-secondary" @click="busca = ''">Limpar filtros</button>
+      <button type="button" class="btn btn-secondary" @click="limparFiltros">Limpar filtros</button>
       <button type="button" class="btn btn-primary blueprint" @click="nova">
         <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
         + Cadastrar categoria
@@ -62,33 +91,35 @@ function excluir(c: Categoria) {
     </template>
   </PageHeader>
 
+  <AlertBar v-if="feedback.mensagem.value" :tipo="feedback.tipo.value" :mensagem="feedback.mensagem.value" @fechar="feedback.limpar" />
+
   <section class="block">
     <div class="block-head">
       <h6>Consultar categorias</h6>
       <input v-model="busca" class="input search" type="search" placeholder="Buscar por nome ou descrição…">
-      <span class="block-head__meta">{{ filtradas.length }} de {{ categorias.length }} categorias</span>
+      <span class="block-head__meta">{{ store.categorias.length }} categoria(s)</span>
     </div>
 
     <form v-if="formAberto" class="card blueprint form" @submit.prevent="salvar">
       <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
       <div class="form-head">
-        <h3>{{ form.id ? `Alterar categoria #${form.id}` : 'Cadastrar categoria' }}</h3>
+        <h3>{{ editandoId ? `Alterar categoria #${editandoId}` : 'Cadastrar categoria' }}</h3>
         <span class="form-hint">Categoria.cadastrar() / alterar()</span>
       </div>
       <div class="form-grid">
-        <label class="field"><span>Nome</span><input v-model="form.nome" class="input" placeholder="Componentes"></label>
+        <label class="field"><span>Nome</span><input v-model="form.nome" class="input" required placeholder="Componentes"></label>
         <label class="field"><span>Descrição</span><input v-model="form.descricao" class="input" placeholder="Peças mecânicas de montagem"></label>
         <label class="field">
           <span>Status</span>
           <select v-model="form.status" class="input">
-            <option>Ativa</option>
-            <option>Inativa</option>
+            <option value="ativa">Ativa</option>
+            <option value="inativa">Inativa</option>
           </select>
         </label>
       </div>
       <div class="form-actions">
         <button type="button" class="btn btn-secondary" @click="formAberto = false">Cancelar</button>
-        <button type="submit" class="btn btn-primary">Salvar categoria</button>
+        <button type="submit" class="btn btn-primary" :disabled="salvando">{{ salvando ? 'Salvando...' : 'Salvar categoria' }}</button>
       </div>
     </form>
 
@@ -98,16 +129,18 @@ function excluir(c: Categoria) {
           <th style="width:52px">ID</th>
           <th>Nome</th>
           <th>Descrição</th>
+          <th style="width:90px;text-align:right">Produtos</th>
           <th style="width:110px">Status</th>
           <th style="width:150px">Ações</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="c in filtradas" :key="c.id">
+        <tr v-for="c in store.categorias" :key="c.id">
           <td class="num muted">{{ c.id }}</td>
           <td class="strong">{{ c.nome }}</td>
-          <td class="small muted">{{ c.descricao }}</td>
-          <td><span class="tag" :class="c.status === 'Ativa' ? 'tag-accent' : 'tag-neutral'">{{ c.status }}</span></td>
+          <td class="small muted">{{ c.descricao || '—' }}</td>
+          <td class="num">{{ c.produtos_count ?? 0 }}</td>
+          <td><span class="tag" :class="c.status === 'ativa' ? 'tag-accent' : 'tag-neutral'">{{ c.status === 'ativa' ? 'Ativa' : 'Inativa' }}</span></td>
           <td>
             <div class="row-actions">
               <button type="button" class="btn btn-ghost" @click="editar(c)">Alterar</button>
@@ -117,7 +150,9 @@ function excluir(c: Categoria) {
         </tr>
       </tbody>
     </table>
-    <p v-if="filtradas.length === 0" class="empty">Nenhuma categoria encontrada com esse termo.</p>
+    <p v-if="!store.carregando && store.categorias.length === 0" class="empty">
+      {{ busca ? 'Nenhuma categoria encontrada com esse termo.' : 'Nenhuma categoria cadastrada ainda.' }}
+    </p>
   </section>
 </template>
 
