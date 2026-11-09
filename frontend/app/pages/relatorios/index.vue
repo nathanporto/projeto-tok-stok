@@ -1,112 +1,164 @@
 <script setup lang="ts">
-import { situacaoProduto, useEstoqueMock } from '~/composables/useEstoqueMock'
+import { useProdutosStore } from '~/stores/produtos'
+import { useRelatoriosStore, type RelatorioFiltros } from '~/stores/relatorios'
 
-const { produtos, movimentacoes } = useEstoqueMock()
+const store = useRelatoriosStore()
+const produtosStore = useProdutosStore()
+const feedback = useFeedback()
 
-const produtoFiltro = ref<number | 'TODOS'>('TODOS')
-
-const movimentacoesFiltradas = computed(() => {
-  if (produtoFiltro.value === 'TODOS') return movimentacoes.value
-  const nome = produtos.value.find(p => p.id === produtoFiltro.value)?.nome
-  return movimentacoes.value.filter(m => m.produto === nome)
+// Período padrão: do primeiro dia do mês atual até hoje.
+const hoje = new Date()
+const filtros = reactive<Required<RelatorioFiltros>>({
+  produto_id: null,
+  data_inicio: dataLocalISO(new Date(hoje.getFullYear(), hoje.getMonth(), 1)),
+  data_fim: dataLocalISO(hoje),
 })
 
-const totalEntradas = computed(() => movimentacoesFiltradas.value.filter(m => m.tipo === 'ENTRADA').reduce((a, m) => a + m.quantidade, 0))
-const totalSaidas = computed(() => movimentacoesFiltradas.value.filter(m => m.tipo === 'SAÍDA').reduce((a, m) => a + m.quantidade, 0))
-const estoqueAtual = computed(() => produtos.value.reduce((a, p) => a + p.qtd, 0))
-const abaixoDoMinimo = computed(() => produtos.value.filter(p => p.qtd < p.minimo))
-
-function situacao(p: { qtd: number; minimo: number }) {
-  return situacaoProduto(p)
+function carregar() {
+  if (filtros.data_inicio && filtros.data_fim && filtros.data_fim < filtros.data_inicio) {
+    feedback.erro(new Error('A data final deve ser igual ou posterior à data inicial.'))
+    return
+  }
+  feedback.limpar()
+  store.fetch(filtros).catch(feedback.erro)
 }
+
+watch(() => [filtros.produto_id, filtros.data_inicio, filtros.data_fim], carregar)
+
+onMounted(() => {
+  carregar()
+  produtosStore.fetchAll().catch(feedback.erro)
+})
+
+const r = computed(() => store.relatorio)
 </script>
 
 <template>
   <PageHeader
     kicker="Relatórios"
     title="Relatórios de estoque"
-    subtitle="Estoque atual, entradas, saídas e produtos com estoque baixo — filtrando por produto."
-  >
-    <template #actions>
-      <select v-model="produtoFiltro" class="input filtro-produto">
-        <option value="TODOS">Todos os produtos</option>
-        <option v-for="p in produtos" :key="p.id" :value="p.id">{{ p.nome }}</option>
+    subtitle="Estoque atual, entradas, saídas e produtos com estoque baixo — filtrando por produto e período."
+  />
+
+  <AlertBar v-if="feedback.mensagem.value" :tipo="feedback.tipo.value" :mensagem="feedback.mensagem.value" @fechar="feedback.limpar" />
+
+  <div class="filtros">
+    <label class="field">
+      <span>Produto</span>
+      <select v-model="filtros.produto_id" class="input">
+        <option :value="null">Todos os produtos</option>
+        <option v-for="p in produtosStore.produtos" :key="p.id" :value="p.id">{{ p.nome }}</option>
       </select>
-    </template>
-  </PageHeader>
+    </label>
+    <label class="field"><span>Período — de</span><input v-model="filtros.data_inicio" class="input" type="date"></label>
+    <label class="field"><span>até</span><input v-model="filtros.data_fim" class="input" type="date"></label>
+  </div>
 
   <section class="kpis">
-    <KpiCard kicker="Estoque atual (total)" :valor="estoqueAtual.toLocaleString('pt-BR')" nota="Somatório de todos os saldos" />
-    <KpiCard kicker="Entradas no período" :valor="`+${totalEntradas}`" nota="Unidades recebidas" />
-    <KpiCard kicker="Saídas no período" :valor="`−${totalSaidas}`" nota="Unidades expedidas" />
-    <KpiCard kicker="Abaixo do mínimo" :valor="abaixoDoMinimo.length" nota="Produtos que requerem reposição" />
+    <KpiCard kicker="Estoque atual" :valor="r ? r.estoque_atual.toLocaleString('pt-BR') : '—'" :nota="r ? `Valor em estoque: ${formatarMoeda(r.valor_em_estoque)}` : 'Unidades em estoque'" />
+    <KpiCard kicker="Entradas no período" :valor="r ? `+${r.total_entradas}` : '—'" nota="Unidades recebidas" />
+    <KpiCard kicker="Saídas no período" :valor="r ? `−${r.total_saidas}` : '—'" nota="Unidades expedidas" />
+    <KpiCard kicker="Estoque baixo" :valor="r ? r.produtos_baixo.length : '—'" nota="Produtos abaixo do mínimo" />
   </section>
 
   <section class="block">
-    <div class="block-head">
-      <h6>Estoque atual por produto</h6>
-    </div>
+    <div class="block-head"><h6>Estoque atual por produto</h6></div>
     <table class="table">
       <thead>
         <tr>
+          <th style="width:90px">Cód.</th>
           <th>Produto</th>
-          <th style="width:120px">Categoria</th>
+          <th style="width:130px">Categoria</th>
           <th style="width:74px;text-align:right">Saldo</th>
           <th style="width:70px;text-align:right">Mín.</th>
           <th style="width:70px;text-align:right">Máx.</th>
+          <th style="width:110px;text-align:right">Valor</th>
           <th style="width:110px">Situação</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="p in produtos" :key="p.id">
+        <tr v-for="p in r?.produtos ?? []" :key="p.id">
+          <td class="muted">{{ p.codigo }}</td>
           <td class="strong">{{ p.nome }}</td>
-          <td class="small muted">{{ p.categoria }}</td>
-          <td class="num">{{ p.qtd }}</td>
-          <td class="num muted">{{ p.minimo }}</td>
-          <td class="num muted">{{ p.maximo }}</td>
-          <td><span class="tag" :class="situacao(p).tagClasse">{{ situacao(p).situacao }}</span></td>
+          <td class="small muted">{{ p.categoria?.nome ?? '—' }}</td>
+          <td class="num">{{ p.quantidade }}</td>
+          <td class="num muted">{{ p.estoque_minimo }}</td>
+          <td class="num muted">{{ p.estoque_maximo }}</td>
+          <td class="num small">{{ formatarMoeda(p.quantidade * Number(p.preco_custo)) }}</td>
+          <td><span class="tag" :class="situacaoEstoque(p.quantidade, p.estoque_minimo).tagClasse">{{ situacaoEstoque(p.quantidade, p.estoque_minimo).situacao }}</span></td>
         </tr>
       </tbody>
     </table>
+    <p v-if="r && r.produtos.length === 0" class="empty">Nenhum produto cadastrado.</p>
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <h6>Produtos com estoque baixo</h6>
+      <span class="block-head__meta">{{ r?.produtos_baixo.length ?? 0 }} item(ns) para reposição</span>
+    </div>
+    <table v-if="r && r.produtos_baixo.length" class="table">
+      <thead>
+        <tr>
+          <th>Produto</th>
+          <th style="width:74px;text-align:right">Saldo</th>
+          <th style="width:70px;text-align:right">Mín.</th>
+          <th style="width:120px;text-align:right">Repor (até máx.)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="p in r.produtos_baixo" :key="p.id">
+          <td class="strong">{{ p.nome }}</td>
+          <td class="num">{{ p.quantidade }}</td>
+          <td class="num muted">{{ p.estoque_minimo }}</td>
+          <td class="num strong">{{ Math.max(p.estoque_maximo - p.quantidade, 0) }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <p v-else-if="r" class="empty">Nenhum produto abaixo do estoque mínimo.</p>
   </section>
 
   <section class="block">
     <div class="block-head">
       <h6>Movimentações no período</h6>
+      <span class="block-head__meta">{{ r?.movimentacoes.length ?? 0 }} registro(s)</span>
     </div>
-    <table class="table">
+    <table v-if="r && r.movimentacoes.length" class="table">
       <thead>
         <tr>
-          <th style="width:80px">Data</th>
-          <th style="width:96px">Tipo</th>
+          <th style="width:92px">Data</th>
+          <th style="width:90px">Tipo</th>
           <th>Produto</th>
-          <th style="width:74px;text-align:right">Qtd</th>
-          <th style="width:90px;text-align:right">Saldo</th>
+          <th style="width:180px">Fornecedor / Motivo</th>
+          <th style="width:70px;text-align:right">Qtd</th>
+          <th style="width:76px;text-align:right">Saldo</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="m in movimentacoesFiltradas" :key="m.id">
-          <td class="num muted">{{ m.data }}</td>
-          <td><span class="tag" :class="m.tipo === 'ENTRADA' ? 'tag-accent' : 'tag-outline'">{{ m.tipo }}</span></td>
-          <td class="strong">{{ m.produto }}</td>
-          <td class="num">{{ m.tipo === 'ENTRADA' ? '+' : '−' }}{{ m.quantidade }}</td>
-          <td class="num strong">{{ m.saldo }}</td>
+        <tr v-for="m in r.movimentacoes" :key="m.id">
+          <td class="num muted">{{ formatarData(m.data) }}</td>
+          <td><span class="tag" :class="classeTipo(m.tipo)">{{ rotuloTipo(m.tipo) }}</span></td>
+          <td class="strong">{{ m.produto?.nome }}</td>
+          <td class="small">{{ origemMovimentacao(m) }}</td>
+          <td class="num">{{ m.tipo === 'entrada' ? '+' : '−' }}{{ m.quantidade }}</td>
+          <td class="num strong">{{ m.saldo_resultante }}</td>
         </tr>
       </tbody>
     </table>
-    <p v-if="movimentacoesFiltradas.length === 0" class="empty">Nenhuma movimentação para o produto selecionado.</p>
+    <p v-else-if="r" class="empty">Nenhuma movimentação no período selecionado.</p>
   </section>
 </template>
 
 <style scoped>
+.filtros { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: var(--space-4); align-items: end; }
 .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-6); }
-.filtro-produto { width: 260px; max-width: 100%; }
 .block { display: flex; flex-direction: column; gap: var(--space-4); }
 .block-head {
   display: flex; align-items: center; gap: var(--space-3);
   border-bottom: 1px solid var(--color-divider); padding-bottom: var(--space-3);
 }
 .block-head h6 { margin: 0; margin-right: auto; }
+.block-head__meta { font-size: 11px; color: color-mix(in srgb, var(--color-text) 55%, transparent); }
 
 .num { text-align: right; font-variant-numeric: tabular-nums; }
 .muted { color: color-mix(in srgb, var(--color-text) 55%, transparent); }
@@ -119,5 +171,6 @@ function situacao(p: { qtd: number; minimo: number }) {
 
 @media (max-width: 1100px) {
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .filtros { grid-template-columns: 1fr; }
 }
 </style>

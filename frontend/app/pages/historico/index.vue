@@ -1,30 +1,50 @@
 <script setup lang="ts">
-import { useEstoqueMock } from '~/composables/useEstoqueMock'
+import { useMovimentacoesStore } from '~/stores/movimentacoes'
+import { useProdutosStore } from '~/stores/produtos'
+import type { MovimentacaoFiltros } from '~/types'
 
-const { movimentacoes } = useEstoqueMock()
+const store = useMovimentacoesStore()
+const produtosStore = useProdutosStore()
+const feedback = useFeedback()
 
-const busca = ref('')
-const tipoFiltro = ref<'TODOS' | 'ENTRADA' | 'SAÍDA'>('TODOS')
-
-const filtradas = computed(() => {
-  const termo = busca.value.trim().toLowerCase()
-  return movimentacoes.value.filter((m) => {
-    if (tipoFiltro.value !== 'TODOS' && m.tipo !== tipoFiltro.value) return false
-    if (!termo) return true
-    return [m.produto, m.responsavelOuMotivo, m.documento].join(' ').toLowerCase().includes(termo)
-  })
+const filtros = reactive<Required<MovimentacaoFiltros>>({
+  tipo: '',
+  produto_id: null,
+  data_inicio: '',
+  data_fim: '',
+  busca: '',
 })
 
-const totalEntradas = computed(() => filtradas.value.filter(m => m.tipo === 'ENTRADA').reduce((a, m) => a + m.quantidade, 0))
-const totalSaidas = computed(() => filtradas.value.filter(m => m.tipo === 'SAÍDA').reduce((a, m) => a + m.quantidade, 0))
-
-function tagMovimento(t: 'ENTRADA' | 'SAÍDA') {
-  return t === 'ENTRADA' ? 'tag-accent' : 'tag-outline'
+function carregar() {
+  if (filtros.data_inicio && filtros.data_fim && filtros.data_fim < filtros.data_inicio) {
+    feedback.erro(new Error('A data final deve ser igual ou posterior à data inicial.'))
+    return
+  }
+  store.fetchAll({ ...filtros, busca: filtros.busca.trim() }).catch(feedback.erro)
 }
 
+let timer: ReturnType<typeof setTimeout> | undefined
+watch(() => filtros.busca, () => {
+  clearTimeout(timer)
+  timer = setTimeout(carregar, 300)
+})
+watch(() => [filtros.tipo, filtros.produto_id, filtros.data_inicio, filtros.data_fim], carregar)
+
+onMounted(() => {
+  carregar()
+  produtosStore.fetchAll().catch(feedback.erro)
+})
+
+const totalEntradas = computed(() => store.movimentacoes.filter(m => m.tipo === 'entrada').reduce((a, m) => a + m.quantidade, 0))
+const totalSaidas = computed(() => store.movimentacoes.filter(m => m.tipo === 'saida').reduce((a, m) => a + m.quantidade, 0))
+
 function limpar() {
-  busca.value = ''
-  tipoFiltro.value = 'TODOS'
+  filtros.tipo = ''
+  filtros.produto_id = null
+  filtros.data_inicio = ''
+  filtros.data_fim = ''
+  filtros.busca = ''
+  feedback.limpar()
 }
 </script>
 
@@ -32,57 +52,70 @@ function limpar() {
   <PageHeader
     kicker="Histórico"
     title="Histórico de movimentações"
-    subtitle="Todas as entradas e saídas registradas no estoque, com filtros por tipo e período."
+    subtitle="Todas as entradas e saídas registradas no estoque, com filtros por tipo, produto e período."
   >
     <template #actions>
       <button type="button" class="btn btn-secondary" @click="limpar">Limpar filtros</button>
     </template>
   </PageHeader>
 
+  <AlertBar v-if="feedback.mensagem.value" :tipo="feedback.tipo.value" :mensagem="feedback.mensagem.value" @fechar="feedback.limpar" />
+
   <section class="kpis">
-    <KpiCard kicker="Movimentações filtradas" :valor="filtradas.length" nota="Registros no período selecionado" />
-    <KpiCard kicker="Total de entradas" :valor="`+${totalEntradas}`" nota="Unidades recebidas" />
-    <KpiCard kicker="Total de saídas" :valor="`−${totalSaidas}`" nota="Unidades expedidas" />
+    <KpiCard kicker="Movimentações filtradas" :valor="store.movimentacoes.length" nota="Registros encontrados" />
+    <KpiCard kicker="Unidades que entraram" :valor="`+${totalEntradas}`" nota="Soma das entradas filtradas" />
+    <KpiCard kicker="Unidades que saíram" :valor="`−${totalSaidas}`" nota="Soma das saídas filtradas" />
   </section>
 
   <section class="block">
     <div class="block-head">
       <h6>Registros</h6>
       <div class="seg">
-        <label class="seg-opt"><input v-model="tipoFiltro" type="radio" name="tipoFiltro" value="TODOS">Todos</label>
-        <label class="seg-opt"><input v-model="tipoFiltro" type="radio" name="tipoFiltro" value="ENTRADA">Entradas</label>
-        <label class="seg-opt"><input v-model="tipoFiltro" type="radio" name="tipoFiltro" value="SAÍDA">Saídas</label>
+        <label class="seg-opt"><input v-model="filtros.tipo" type="radio" name="tipoFiltro" value="">Todos</label>
+        <label class="seg-opt"><input v-model="filtros.tipo" type="radio" name="tipoFiltro" value="entrada">Entradas</label>
+        <label class="seg-opt"><input v-model="filtros.tipo" type="radio" name="tipoFiltro" value="saida">Saídas</label>
       </div>
-      <input v-model="busca" class="input search" type="search" placeholder="Buscar por produto, responsável ou documento…">
+    </div>
+
+    <div class="filtros">
+      <input v-model="filtros.busca" class="input" type="search" placeholder="Buscar por produto, motivo ou fornecedor…">
+      <select v-model="filtros.produto_id" class="input">
+        <option :value="null">Todos os produtos</option>
+        <option v-for="p in produtosStore.produtos" :key="p.id" :value="p.id">{{ p.nome }}</option>
+      </select>
+      <label class="field"><span>De</span><input v-model="filtros.data_inicio" class="input" type="date"></label>
+      <label class="field"><span>Até</span><input v-model="filtros.data_fim" class="input" type="date"></label>
     </div>
 
     <table class="table">
       <thead>
         <tr>
-          <th style="width:64px">ID</th>
-          <th style="width:80px">Data</th>
-          <th style="width:96px">Tipo</th>
+          <th style="width:56px">ID</th>
+          <th style="width:92px">Data</th>
+          <th style="width:90px">Tipo</th>
           <th>Produto</th>
-          <th style="width:170px">Resp. / Motivo</th>
-          <th style="width:110px">Documento</th>
-          <th style="width:74px;text-align:right">Qtd</th>
-          <th style="width:90px;text-align:right">Saldo</th>
+          <th style="width:180px">Fornecedor / Motivo</th>
+          <th style="width:150px">Observação</th>
+          <th style="width:130px">Operador</th>
+          <th style="width:70px;text-align:right">Qtd</th>
+          <th style="width:76px;text-align:right">Saldo</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="m in filtradas" :key="m.id">
+        <tr v-for="m in store.movimentacoes" :key="m.id">
           <td class="num muted">{{ m.id }}</td>
-          <td class="num muted">{{ m.data }}</td>
-          <td><span class="tag" :class="tagMovimento(m.tipo)">{{ m.tipo }}</span></td>
-          <td class="strong">{{ m.produto }}</td>
-          <td class="small">{{ m.responsavelOuMotivo }}</td>
-          <td class="small muted">{{ m.documento }}</td>
-          <td class="num">{{ m.tipo === 'ENTRADA' ? '+' : '−' }}{{ m.quantidade }}</td>
-          <td class="num strong">{{ m.saldo }}</td>
+          <td class="num muted">{{ formatarData(m.data) }}</td>
+          <td><span class="tag" :class="classeTipo(m.tipo)">{{ rotuloTipo(m.tipo) }}</span></td>
+          <td class="strong">{{ m.produto?.nome }}</td>
+          <td class="small">{{ origemMovimentacao(m) }}</td>
+          <td class="small muted">{{ m.observacao || '—' }}</td>
+          <td class="small muted">{{ m.user?.name ?? '—' }}</td>
+          <td class="num">{{ m.tipo === 'entrada' ? '+' : '−' }}{{ m.quantidade }}</td>
+          <td class="num strong">{{ m.saldo_resultante }}</td>
         </tr>
       </tbody>
     </table>
-    <p v-if="filtradas.length === 0" class="empty">Nenhuma movimentação encontrada para o filtro atual.</p>
+    <p v-if="!store.carregando && store.movimentacoes.length === 0" class="empty">Nenhuma movimentação encontrada para o filtro atual.</p>
   </section>
 </template>
 
@@ -94,7 +127,7 @@ function limpar() {
   border-bottom: 1px solid var(--color-divider); padding-bottom: var(--space-3); flex-wrap: wrap;
 }
 .block-head h6 { margin: 0; margin-right: auto; }
-.search { width: 300px; max-width: 100%; }
+.filtros { display: grid; grid-template-columns: 2fr 1.4fr 1fr 1fr; gap: var(--space-3); align-items: end; }
 
 .num { text-align: right; font-variant-numeric: tabular-nums; }
 .muted { color: color-mix(in srgb, var(--color-text) 55%, transparent); }
@@ -107,5 +140,6 @@ function limpar() {
 
 @media (max-width: 1100px) {
   .kpis { grid-template-columns: 1fr; }
+  .filtros { grid-template-columns: 1fr 1fr; }
 }
 </style>

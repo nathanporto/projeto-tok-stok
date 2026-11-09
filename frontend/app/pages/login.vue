@@ -61,7 +61,7 @@ async function entrar() {
 
       <div class="login-stats">
         <div>
-          <div class="login-stat-value">04</div>
+          <div class="login-stat-value">07</div>
           <div class="login-stat-label">Módulos ativos</div>
         </div>
         <div>

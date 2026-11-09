@@ -4,7 +4,9 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FornecedorController;
+use App\Http\Controllers\MovimentacaoController;
 use App\Http\Controllers\ProdutoController;
+use App\Http\Controllers\RelatorioController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', fn () => response()->json(['status' => 'ok', 'app' => 'Tok&Stok API']));
@@ -26,4 +28,9 @@ Route::middleware('auth:api')->group(function () {
         ->except(['show'])
         ->parameters(['fornecedores' => 'fornecedor']);
     Route::apiResource('produtos', ProdutoController::class);
+
+    Route::get('/movimentacoes', [MovimentacaoController::class, 'index']);
+    Route::post('/movimentacoes', [MovimentacaoController::class, 'store']);
+
+    Route::get('/relatorios', [RelatorioController::class, 'index']);
 });

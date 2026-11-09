@@ -9,10 +9,6 @@ onMounted(() => {
 })
 
 const resumo = computed(() => store.resumo)
-
-function tagMovimento(tipo: 'entrada' | 'saida') {
-  return tipo === 'entrada' ? 'tag-accent' : 'tag-outline'
-}
 </script>
 
 <template>
@@ -37,6 +33,14 @@ function tagMovimento(tipo: 'entrada' | 'saida') {
     <KpiCard kicker="Sem estoque" :valor="resumo?.sem_estoque ?? '—'" nota="Saldo zerado" />
     <KpiCard kicker="Total de entradas" :valor="resumo?.total_entradas ?? '—'" nota="Movimentações de entrada" />
     <KpiCard kicker="Total de saídas" :valor="resumo?.total_saidas ?? '—'" nota="Movimentações de saída" />
+  </section>
+
+  <section class="block">
+    <div class="block-head">
+      <h6>Movimentação dos últimos 7 dias</h6>
+      <span class="block-head__meta">Unidades por dia</span>
+    </div>
+    <GraficoMovimentacoes v-if="resumo" :pontos="resumo.grafico" />
   </section>
 
   <div class="dash-split">
@@ -80,10 +84,10 @@ function tagMovimento(tipo: 'entrada' | 'saida') {
           <span class="mov-row__data">{{ formatarData(m.data) }}</span>
           <span>
             <span class="strong">{{ m.produto?.nome }}</span>
-            <span class="mov-row__resp">{{ m.tipo === 'entrada' ? (m.fornecedor?.nome ?? 'Fornecedor não informado') : (m.motivo ?? 'Motivo não informado') }}</span>
+            <span class="mov-row__resp">{{ origemMovimentacao(m) }}</span>
           </span>
           <span class="mov-row__right">
-            <span class="tag" :class="tagMovimento(m.tipo)">{{ m.tipo === 'entrada' ? 'ENTRADA' : 'SAÍDA' }}</span>
+            <span class="tag" :class="classeTipo(m.tipo)">{{ rotuloTipo(m.tipo) }}</span>
             <span class="mov-row__delta">{{ m.tipo === 'entrada' ? '+' : '−' }}{{ m.quantidade }}</span>
           </span>
         </div>

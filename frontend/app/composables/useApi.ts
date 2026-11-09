@@ -12,15 +12,23 @@ export function useApi() {
       headers['Authorization'] = `Bearer ${token.value}`
     }
 
-    const response = await fetch(`${config.public.apiBase}${path}`, {
-      ...options,
-      headers: { ...headers, ...(options.headers as Record<string, string> ?? {}) },
-    })
+    const enviouToken = !!token.value
 
-    if (response.status === 401) {
+    let response: Response
+    try {
+      response = await fetch(`${config.public.apiBase}${path}`, {
+        ...options,
+        headers: { ...headers, ...(options.headers as Record<string, string> ?? {}) },
+      })
+    } catch {
+      throw new Error('Não foi possível conectar ao servidor. Tente novamente em instantes.')
+    }
+
+    // 401 com token = sessão expirada. Sem token (ex.: login), é só credencial inválida.
+    if (response.status === 401 && enviouToken) {
       token.value = null
       await navigateTo('/login')
-      throw new Error('Não autorizado')
+      throw new Error('Sua sessão expirou. Entre novamente.')
     }
 
     if (!response.ok) {

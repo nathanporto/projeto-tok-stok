@@ -27,12 +27,7 @@ export const useProdutosStore = defineStore('produtos', () => {
   async function fetchAll(filtros: ProdutoFiltros = {}) {
     carregando.value = true
     try {
-      const params = new URLSearchParams()
-      Object.entries(filtros).forEach(([chave, valor]) => {
-        if (valor !== undefined && valor !== null && valor !== '') params.set(chave, String(valor))
-      })
-      const query = params.toString() ? `?${params}` : ''
-      produtos.value = await api.get<Produto[]>(`/produtos${query}`)
+      produtos.value = await api.get<Produto[]>(`/produtos${montarQuery(filtros)}`)
     } finally {
       carregando.value = false
     }

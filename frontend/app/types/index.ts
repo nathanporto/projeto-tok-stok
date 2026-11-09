@@ -37,17 +37,35 @@ export interface Produto {
   fornecedor?: Pick<Fornecedor, 'id' | 'nome'> | null
 }
 
+export type TipoMovimentacao = 'entrada' | 'saida'
+
 export interface Movimentacao {
   id: number
   produto_id: number
   fornecedor_id: number | null
-  tipo: 'entrada' | 'saida'
+  tipo: TipoMovimentacao
   quantidade: number
+  saldo_resultante: number
   data: string
   motivo: string | null
   observacao: string | null
   produto?: Pick<Produto, 'id' | 'nome' | 'codigo'>
   fornecedor?: Pick<Fornecedor, 'id' | 'nome'> | null
+  user?: { id: number; name: string } | null
+}
+
+export interface MovimentacaoFiltros {
+  tipo?: '' | TipoMovimentacao
+  produto_id?: number | null
+  data_inicio?: string
+  data_fim?: string
+  busca?: string
+}
+
+export interface PontoGrafico {
+  data: string
+  entradas: number
+  saidas: number
 }
 
 export interface DashboardResumo {
@@ -58,4 +76,15 @@ export interface DashboardResumo {
   total_saidas: number
   alertas: Produto[]
   ultimas_movimentacoes: Movimentacao[]
+  grafico: PontoGrafico[]
+}
+
+export interface RelatorioResumo {
+  estoque_atual: number
+  valor_em_estoque: number
+  total_entradas: number
+  total_saidas: number
+  produtos: Produto[]
+  produtos_baixo: Produto[]
+  movimentacoes: Movimentacao[]
 }
