@@ -28,7 +28,7 @@ defineProps<{
   padding-bottom: var(--space-4);
   flex-wrap: wrap;
 }
-.page-header__text { margin-right: auto; }
+.page-header__text { margin-right: auto; min-width: 0; }
 .page-header__kicker {
   font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
   color: var(--color-accent-700);
@@ -39,4 +39,12 @@ defineProps<{
   color: color-mix(in srgb, var(--color-text) 60%, transparent);
 }
 .page-header__actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.page-header__actions:empty { display: none; }
+
+@media (max-width: 700px) {
+  .page-header { gap: var(--space-4); }
+  .page-header__title { font-size: 28px; overflow-wrap: anywhere; }
+  .page-header__actions { width: 100%; }
+  .page-header__actions > * { flex: 1 1 auto; }
+}
 </style>

@@ -63,32 +63,34 @@ const r = computed(() => store.relatorio)
 
   <section class="block">
     <div class="block-head"><h6>Estoque atual por produto</h6></div>
-    <table class="table">
-      <thead>
-        <tr>
-          <th style="width:90px">Cód.</th>
-          <th>Produto</th>
-          <th style="width:130px">Categoria</th>
-          <th style="width:74px;text-align:right">Saldo</th>
-          <th style="width:70px;text-align:right">Mín.</th>
-          <th style="width:70px;text-align:right">Máx.</th>
-          <th style="width:110px;text-align:right">Valor</th>
-          <th style="width:110px">Situação</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="p in r?.produtos ?? []" :key="p.id">
-          <td class="muted">{{ p.codigo }}</td>
-          <td class="strong">{{ p.nome }}</td>
-          <td class="small muted">{{ p.categoria?.nome ?? '—' }}</td>
-          <td class="num">{{ p.quantidade }}</td>
-          <td class="num muted">{{ p.estoque_minimo }}</td>
-          <td class="num muted">{{ p.estoque_maximo }}</td>
-          <td class="num small">{{ formatarMoeda(p.quantidade * Number(p.preco_custo)) }}</td>
-          <td><span class="tag" :class="situacaoEstoque(p.quantidade, p.estoque_minimo).tagClasse">{{ situacaoEstoque(p.quantidade, p.estoque_minimo).situacao }}</span></td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="table-scroll">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width:90px">Cód.</th>
+            <th>Produto</th>
+            <th style="width:130px">Categoria</th>
+            <th style="width:74px;text-align:right">Saldo</th>
+            <th style="width:70px;text-align:right">Mín.</th>
+            <th style="width:70px;text-align:right">Máx.</th>
+            <th style="width:110px;text-align:right">Valor</th>
+            <th style="width:110px">Situação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="p in r?.produtos ?? []" :key="p.id">
+            <td class="muted">{{ p.codigo }}</td>
+            <td class="strong">{{ p.nome }}</td>
+            <td class="small muted">{{ p.categoria?.nome ?? '—' }}</td>
+            <td class="num">{{ p.quantidade }}</td>
+            <td class="num muted">{{ p.estoque_minimo }}</td>
+            <td class="num muted">{{ p.estoque_maximo }}</td>
+            <td class="num small">{{ formatarMoeda(p.quantidade * Number(p.preco_custo)) }}</td>
+            <td><span class="tag" :class="situacaoEstoque(p.quantidade, p.estoque_minimo).tagClasse">{{ situacaoEstoque(p.quantidade, p.estoque_minimo).situacao }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     <p v-if="r && r.produtos.length === 0" class="empty">Nenhum produto cadastrado.</p>
   </section>
 
@@ -97,24 +99,26 @@ const r = computed(() => store.relatorio)
       <h6>Produtos com estoque baixo</h6>
       <span class="block-head__meta">{{ r?.produtos_baixo.length ?? 0 }} item(ns) para reposição</span>
     </div>
-    <table v-if="r && r.produtos_baixo.length" class="table">
-      <thead>
-        <tr>
-          <th>Produto</th>
-          <th style="width:74px;text-align:right">Saldo</th>
-          <th style="width:70px;text-align:right">Mín.</th>
-          <th style="width:120px;text-align:right">Repor (até máx.)</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="p in r.produtos_baixo" :key="p.id">
-          <td class="strong">{{ p.nome }}</td>
-          <td class="num">{{ p.quantidade }}</td>
-          <td class="num muted">{{ p.estoque_minimo }}</td>
-          <td class="num strong">{{ Math.max(p.estoque_maximo - p.quantidade, 0) }}</td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="table-scroll" v-if="r && r.produtos_baixo.length">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th style="width:74px;text-align:right">Saldo</th>
+            <th style="width:70px;text-align:right">Mín.</th>
+            <th style="width:120px;text-align:right">Repor (até máx.)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="p in r.produtos_baixo" :key="p.id">
+            <td class="strong">{{ p.nome }}</td>
+            <td class="num">{{ p.quantidade }}</td>
+            <td class="num muted">{{ p.estoque_minimo }}</td>
+            <td class="num strong">{{ Math.max(p.estoque_maximo - p.quantidade, 0) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     <p v-else-if="r" class="empty">Nenhum produto abaixo do estoque mínimo.</p>
   </section>
 
@@ -123,28 +127,30 @@ const r = computed(() => store.relatorio)
       <h6>Movimentações no período</h6>
       <span class="block-head__meta">{{ r?.movimentacoes.length ?? 0 }} registro(s)</span>
     </div>
-    <table v-if="r && r.movimentacoes.length" class="table">
-      <thead>
-        <tr>
-          <th style="width:92px">Data</th>
-          <th style="width:90px">Tipo</th>
-          <th>Produto</th>
-          <th style="width:180px">Fornecedor / Motivo</th>
-          <th style="width:70px;text-align:right">Qtd</th>
-          <th style="width:76px;text-align:right">Saldo</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="m in r.movimentacoes" :key="m.id">
-          <td class="num muted">{{ formatarData(m.data) }}</td>
-          <td><span class="tag" :class="classeTipo(m.tipo)">{{ rotuloTipo(m.tipo) }}</span></td>
-          <td class="strong">{{ m.produto?.nome }}</td>
-          <td class="small">{{ origemMovimentacao(m) }}</td>
-          <td class="num">{{ m.tipo === 'entrada' ? '+' : '−' }}{{ m.quantidade }}</td>
-          <td class="num strong">{{ m.saldo_resultante }}</td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="table-scroll" v-if="r && r.movimentacoes.length">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width:92px">Data</th>
+            <th style="width:90px">Tipo</th>
+            <th>Produto</th>
+            <th style="width:180px">Fornecedor / Motivo</th>
+            <th style="width:70px;text-align:right">Qtd</th>
+            <th style="width:76px;text-align:right">Saldo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="m in r.movimentacoes" :key="m.id">
+            <td class="num muted">{{ formatarData(m.data) }}</td>
+            <td><span class="tag" :class="classeTipo(m.tipo)">{{ rotuloTipo(m.tipo) }}</span></td>
+            <td class="strong">{{ m.produto?.nome }}</td>
+            <td class="small">{{ origemMovimentacao(m) }}</td>
+            <td class="num">{{ m.tipo === 'entrada' ? '+' : '−' }}{{ m.quantidade }}</td>
+            <td class="num strong">{{ m.saldo_resultante }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     <p v-else-if="r" class="empty">Nenhuma movimentação no período selecionado.</p>
   </section>
 </template>
@@ -171,6 +177,10 @@ const r = computed(() => store.relatorio)
 
 @media (max-width: 1100px) {
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .filtros { grid-template-columns: 1fr; }
+  .filtros { grid-template-columns: 1fr 1fr; }
+  .filtros > :first-child { grid-column: 1 / -1; }
+}
+@media (max-width: 700px) {
+  .kpis { gap: var(--space-4); }
 }
 </style>

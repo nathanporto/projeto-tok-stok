@@ -124,33 +124,35 @@ function limparFiltros() {
       </div>
     </form>
 
-    <table class="table">
-      <thead>
-        <tr>
-          <th style="width:52px">ID</th>
-          <th>Nome</th>
-          <th style="width:170px">CNPJ</th>
-          <th style="width:150px">Telefone</th>
-          <th style="width:230px">E-mail</th>
-          <th style="width:150px">Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="f in store.fornecedores" :key="f.id">
-          <td class="num muted">{{ f.id }}</td>
-          <td class="strong">{{ f.nome }}</td>
-          <td class="small muted">{{ f.cnpj || '—' }}</td>
-          <td class="small">{{ f.telefone || '—' }}</td>
-          <td class="small muted">{{ f.email || '—' }}</td>
-          <td>
-            <div class="row-actions">
-              <button type="button" class="btn btn-ghost" @click="editar(f)">Alterar</button>
-              <button type="button" class="btn btn-ghost danger" @click="excluir(f)">Excluir</button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="table-scroll">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width:52px">ID</th>
+            <th>Nome</th>
+            <th style="width:170px">CNPJ</th>
+            <th style="width:150px">Telefone</th>
+            <th style="width:230px">E-mail</th>
+            <th style="width:150px">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="f in store.fornecedores" :key="f.id">
+            <td class="num muted">{{ f.id }}</td>
+            <td class="strong">{{ f.nome }}</td>
+            <td class="small muted">{{ f.cnpj || '—' }}</td>
+            <td class="small">{{ f.telefone || '—' }}</td>
+            <td class="small muted">{{ f.email || '—' }}</td>
+            <td>
+              <div class="row-actions">
+                <button type="button" class="btn btn-ghost" @click="editar(f)">Alterar</button>
+                <button type="button" class="btn btn-ghost danger" @click="excluir(f)">Excluir</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     <p v-if="!store.carregando && store.fornecedores.length === 0" class="empty">
       {{ busca ? 'Nenhum fornecedor encontrado com esse termo.' : 'Nenhum fornecedor cadastrado ainda.' }}
     </p>

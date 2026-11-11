@@ -49,28 +49,30 @@ const resumo = computed(() => store.resumo)
         <h6>Alerta de estoque mínimo</h6>
         <span class="block-head__meta">{{ resumo?.alertas.length ?? 0 }} item(ns) para reposição</span>
       </div>
-      <table class="table">
-        <thead>
-          <tr>
-            <th style="width:80px">Cód.</th>
-            <th>Produto</th>
-            <th style="width:120px">Categoria</th>
-            <th style="width:70px;text-align:right">Saldo</th>
-            <th style="width:70px;text-align:right">Mínimo</th>
-            <th style="width:110px">Situação</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="p in resumo?.alertas ?? []" :key="p.id">
-            <td class="muted">{{ p.codigo }}</td>
-            <td class="strong">{{ p.nome }}</td>
-            <td class="small muted">{{ p.categoria?.nome ?? '—' }}</td>
-            <td class="num">{{ p.quantidade }}</td>
-            <td class="num muted">{{ p.estoque_minimo }}</td>
-            <td><span class="tag" :class="situacaoEstoque(p.quantidade, p.estoque_minimo).tagClasse">{{ situacaoEstoque(p.quantidade, p.estoque_minimo).situacao }}</span></td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-scroll">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:80px">Cód.</th>
+              <th>Produto</th>
+              <th style="width:120px">Categoria</th>
+              <th style="width:70px;text-align:right">Saldo</th>
+              <th style="width:70px;text-align:right">Mínimo</th>
+              <th style="width:110px">Situação</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="p in resumo?.alertas ?? []" :key="p.id">
+              <td class="muted">{{ p.codigo }}</td>
+              <td class="strong">{{ p.nome }}</td>
+              <td class="small muted">{{ p.categoria?.nome ?? '—' }}</td>
+              <td class="num">{{ p.quantidade }}</td>
+              <td class="num muted">{{ p.estoque_minimo }}</td>
+              <td><span class="tag" :class="situacaoEstoque(p.quantidade, p.estoque_minimo).tagClasse">{{ situacaoEstoque(p.quantidade, p.estoque_minimo).situacao }}</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <p v-if="resumo && resumo.alertas.length === 0" class="empty">Nenhum produto abaixo do estoque mínimo.</p>
     </section>
 
@@ -99,7 +101,7 @@ const resumo = computed(() => store.resumo)
 
 <style scoped>
 .kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-6); }
-.dash-split { display: grid; grid-template-columns: 1.15fr 1fr; gap: var(--space-8); align-items: start; }
+.dash-split { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: var(--space-8); align-items: start; }
 .block { display: flex; flex-direction: column; gap: var(--space-4); }
 .block-head {
   display: flex; align-items: baseline; gap: var(--space-3);
@@ -132,6 +134,15 @@ const resumo = computed(() => store.resumo)
 }
 @media (max-width: 1100px) {
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .dash-split { grid-template-columns: 1fr; }
+  .kpis > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .dash-split { grid-template-columns: minmax(0, 1fr); gap: var(--space-6); }
+}
+@media (max-width: 700px) {
+  .kpis { gap: var(--space-4); }
+  /* A data sobe para cima do produto, liberando largura para o nome. */
+  .mov-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 2px; }
+  .mov-row__data { grid-column: 1 / -1; }
+  .mov-row__right { gap: var(--space-2); }
+  .mov-row__delta { min-width: 40px; font-size: 16px; }
 }
 </style>

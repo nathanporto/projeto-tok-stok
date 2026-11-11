@@ -87,34 +87,36 @@ function limpar() {
       <label class="field"><span>Até</span><input v-model="filtros.data_fim" class="input" type="date"></label>
     </div>
 
-    <table class="table">
-      <thead>
-        <tr>
-          <th style="width:56px">ID</th>
-          <th style="width:92px">Data</th>
-          <th style="width:90px">Tipo</th>
-          <th>Produto</th>
-          <th style="width:180px">Fornecedor / Motivo</th>
-          <th style="width:150px">Observação</th>
-          <th style="width:130px">Operador</th>
-          <th style="width:70px;text-align:right">Qtd</th>
-          <th style="width:76px;text-align:right">Saldo</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="m in store.movimentacoes" :key="m.id">
-          <td class="num muted">{{ m.id }}</td>
-          <td class="num muted">{{ formatarData(m.data) }}</td>
-          <td><span class="tag" :class="classeTipo(m.tipo)">{{ rotuloTipo(m.tipo) }}</span></td>
-          <td class="strong">{{ m.produto?.nome }}</td>
-          <td class="small">{{ origemMovimentacao(m) }}</td>
-          <td class="small muted">{{ m.observacao || '—' }}</td>
-          <td class="small muted">{{ m.user?.name ?? '—' }}</td>
-          <td class="num">{{ m.tipo === 'entrada' ? '+' : '−' }}{{ m.quantidade }}</td>
-          <td class="num strong">{{ m.saldo_resultante }}</td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="table-scroll">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width:56px">ID</th>
+            <th style="width:92px">Data</th>
+            <th style="width:90px">Tipo</th>
+            <th>Produto</th>
+            <th style="width:180px">Fornecedor / Motivo</th>
+            <th style="width:150px">Observação</th>
+            <th style="width:130px">Operador</th>
+            <th style="width:70px;text-align:right">Qtd</th>
+            <th style="width:76px;text-align:right">Saldo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="m in store.movimentacoes" :key="m.id">
+            <td class="num muted">{{ m.id }}</td>
+            <td class="num muted">{{ formatarData(m.data) }}</td>
+            <td><span class="tag" :class="classeTipo(m.tipo)">{{ rotuloTipo(m.tipo) }}</span></td>
+            <td class="strong">{{ m.produto?.nome }}</td>
+            <td class="small">{{ origemMovimentacao(m) }}</td>
+            <td class="small muted">{{ m.observacao || '—' }}</td>
+            <td class="small muted">{{ m.user?.name ?? '—' }}</td>
+            <td class="num">{{ m.tipo === 'entrada' ? '+' : '−' }}{{ m.quantidade }}</td>
+            <td class="num strong">{{ m.saldo_resultante }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     <p v-if="!store.carregando && store.movimentacoes.length === 0" class="empty">Nenhuma movimentação encontrada para o filtro atual.</p>
   </section>
 </template>
@@ -139,7 +141,15 @@ function limpar() {
 }
 
 @media (max-width: 1100px) {
-  .kpis { grid-template-columns: 1fr; }
   .filtros { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 700px) {
+  /* 1º indicador em linha cheia, entradas e saídas lado a lado. */
+  .kpis { grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+  .kpis > :first-child { grid-column: 1 / -1; }
+  .filtros { grid-template-columns: 1fr 1fr; }
+  .filtros > :first-child, .filtros > :nth-child(2) { grid-column: 1 / -1; }
+  .block-head .seg { width: 100%; }
+  .block-head .seg-opt { flex: 1; justify-content: center; }
 }
 </style>

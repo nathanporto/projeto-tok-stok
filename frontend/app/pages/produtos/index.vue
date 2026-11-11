@@ -226,42 +226,44 @@ function limparFiltros() {
       </div>
     </div>
 
-    <table class="table">
-      <thead>
-        <tr>
-          <th style="width:52px">ID</th>
-          <th style="width:90px">Cód.</th>
-          <th>Produto</th>
-          <th style="width:130px">Categoria</th>
-          <th style="width:150px">Fornecedor</th>
-          <th style="width:90px;text-align:right">Custo</th>
-          <th style="width:74px;text-align:right">Saldo</th>
-          <th style="width:70px;text-align:right">Mín.</th>
-          <th style="width:110px">Situação</th>
-          <th style="width:190px">Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="p in store.produtos" :key="p.id">
-          <td class="num muted">{{ p.id }}</td>
-          <td class="muted">{{ p.codigo }}</td>
-          <td class="strong">{{ p.nome }}</td>
-          <td class="small">{{ p.categoria?.nome ?? '—' }}</td>
-          <td class="small muted">{{ p.fornecedor?.nome ?? '—' }}</td>
-          <td class="num small">{{ formatarMoeda(p.preco_custo) }}</td>
-          <td class="num strong">{{ p.quantidade }}</td>
-          <td class="num muted">{{ p.estoque_minimo }}</td>
-          <td><span class="tag" :class="situacaoEstoque(p.quantidade, p.estoque_minimo).tagClasse">{{ situacaoEstoque(p.quantidade, p.estoque_minimo).situacao }}</span></td>
-          <td>
-            <div class="row-actions">
-              <button type="button" class="btn btn-ghost" @click="visualizar(p)">Ver</button>
-              <button type="button" class="btn btn-ghost" @click="editar(p)">Alterar</button>
-              <button type="button" class="btn btn-ghost danger" @click="excluir(p)">Excluir</button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="table-scroll">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width:52px">ID</th>
+            <th style="width:90px">Cód.</th>
+            <th>Produto</th>
+            <th style="width:130px">Categoria</th>
+            <th style="width:150px">Fornecedor</th>
+            <th style="width:90px;text-align:right">Custo</th>
+            <th style="width:74px;text-align:right">Saldo</th>
+            <th style="width:70px;text-align:right">Mín.</th>
+            <th style="width:110px">Situação</th>
+            <th style="width:190px">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="p in store.produtos" :key="p.id">
+            <td class="num muted">{{ p.id }}</td>
+            <td class="muted">{{ p.codigo }}</td>
+            <td class="strong">{{ p.nome }}</td>
+            <td class="small">{{ p.categoria?.nome ?? '—' }}</td>
+            <td class="small muted">{{ p.fornecedor?.nome ?? '—' }}</td>
+            <td class="num small">{{ formatarMoeda(p.preco_custo) }}</td>
+            <td class="num strong">{{ p.quantidade }}</td>
+            <td class="num muted">{{ p.estoque_minimo }}</td>
+            <td><span class="tag" :class="situacaoEstoque(p.quantidade, p.estoque_minimo).tagClasse">{{ situacaoEstoque(p.quantidade, p.estoque_minimo).situacao }}</span></td>
+            <td>
+              <div class="row-actions">
+                <button type="button" class="btn btn-ghost" @click="visualizar(p)">Ver</button>
+                <button type="button" class="btn btn-ghost" @click="editar(p)">Alterar</button>
+                <button type="button" class="btn btn-ghost danger" @click="excluir(p)">Excluir</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     <p v-if="!store.carregando && store.produtos.length === 0" class="empty">
       Nenhum produto encontrado. Use "+ Cadastrar produto" para adicionar o primeiro item.
     </p>

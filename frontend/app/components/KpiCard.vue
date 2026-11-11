@@ -16,6 +16,11 @@ defineProps<{
 </template>
 
 <style scoped>
-.kpi { gap: var(--space-2); padding: var(--space-6); }
-.kpi__valor { font-family: var(--font-heading); font-weight: 700; font-size: 46px; line-height: 0.95; }
+.kpi { gap: var(--space-2); padding: var(--space-6); min-width: 0; }
+.kpi__valor { font-family: var(--font-heading); font-weight: 700; font-size: 46px; line-height: 0.95; overflow-wrap: anywhere; }
+
+@media (max-width: 700px) {
+  .kpi { padding: var(--space-4); }
+  .kpi__valor { font-size: 34px; }
+}
 </style>

@@ -78,6 +78,11 @@ async function entrar() {
     <!-- ══ coluna direita — formulário de autenticação ══ -->
     <div class="login-form-panel">
       <div class="login-form-wrap">
+        <div class="login-mobile-brand">
+          <span class="login-mark">TS</span>
+          <span class="login-brand-name">Fábrica Cruzeiro</span>
+        </div>
+
         <div>
           <div class="login-form-kicker">Autenticação</div>
           <h2 class="login-form-title">Entrar no sistema</h2>
@@ -313,8 +318,26 @@ async function entrar() {
   margin-left: auto;
 }
 
+.login-mobile-brand { display: none; }
+
 @media (max-width: 900px) {
-  .login { grid-template-columns: 1fr; position: static; min-height: 100vh; }
+  .login { grid-template-columns: 1fr; position: static; min-height: 100vh; min-height: 100dvh; }
   .login-brand-panel { display: none; }
+  /* Sem o painel escuro, a identidade da empresa vai para o topo do formulário. */
+  .login-mobile-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--color-divider);
+  }
+  .login-mobile-brand .login-mark { border-color: var(--color-divider); }
+}
+@media (max-width: 700px) {
+  .login-form-panel { padding: var(--space-6) var(--space-4); align-items: start; }
+  .login-form-title { font-size: 30px; }
+  .login-card { padding: var(--space-4); }
+  .login-footnote { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .login-footnote-right { margin-left: 0; }
 }
 </style>

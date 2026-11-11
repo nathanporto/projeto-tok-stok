@@ -161,30 +161,32 @@ async function registrar() {
         <h6>Livro de movimentações</h6>
         <input v-model="busca" class="input search" type="search" placeholder="Filtrar por produto, motivo ou fornecedor…">
       </div>
-      <table class="table">
-        <thead>
-          <tr>
-            <th style="width:56px">ID</th>
-            <th style="width:92px">Data</th>
-            <th style="width:90px">Tipo</th>
-            <th>Produto</th>
-            <th style="width:170px">Fornecedor / Motivo</th>
-            <th style="width:70px;text-align:right">Qtd</th>
-            <th style="width:76px;text-align:right">Saldo</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="m in store.movimentacoes" :key="m.id">
-            <td class="num muted">{{ m.id }}</td>
-            <td class="num muted">{{ formatarData(m.data) }}</td>
-            <td><span class="tag" :class="classeTipo(m.tipo)">{{ rotuloTipo(m.tipo) }}</span></td>
-            <td class="strong">{{ m.produto?.nome }}</td>
-            <td class="small">{{ origemMovimentacao(m) }}</td>
-            <td class="num">{{ m.tipo === 'entrada' ? '+' : '−' }}{{ m.quantidade }}</td>
-            <td class="num strong">{{ m.saldo_resultante }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-scroll">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:56px">ID</th>
+              <th style="width:92px">Data</th>
+              <th style="width:90px">Tipo</th>
+              <th>Produto</th>
+              <th style="width:170px">Fornecedor / Motivo</th>
+              <th style="width:70px;text-align:right">Qtd</th>
+              <th style="width:76px;text-align:right">Saldo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="m in store.movimentacoes" :key="m.id">
+              <td class="num muted">{{ m.id }}</td>
+              <td class="num muted">{{ formatarData(m.data) }}</td>
+              <td><span class="tag" :class="classeTipo(m.tipo)">{{ rotuloTipo(m.tipo) }}</span></td>
+              <td class="strong">{{ m.produto?.nome }}</td>
+              <td class="small">{{ origemMovimentacao(m) }}</td>
+              <td class="num">{{ m.tipo === 'entrada' ? '+' : '−' }}{{ m.quantidade }}</td>
+              <td class="num strong">{{ m.saldo_resultante }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <p v-if="!store.carregando && store.movimentacoes.length === 0" class="empty">
         {{ busca ? 'Nenhuma movimentação encontrada para o filtro.' : 'Nenhuma movimentação registrada ainda.' }}
       </p>
@@ -193,7 +195,7 @@ async function registrar() {
 </template>
 
 <style scoped>
-.split { display: grid; grid-template-columns: 340px 1fr; gap: var(--space-8); align-items: start; }
+.split { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: var(--space-8); align-items: start; }
 .form { padding: var(--space-6); gap: var(--space-4); }
 .form-title { margin: 2px 0 0; font-size: 22px; text-transform: uppercase; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
@@ -228,6 +230,9 @@ async function registrar() {
 }
 
 @media (max-width: 1100px) {
-  .split { grid-template-columns: 1fr; }
+  .split { grid-template-columns: minmax(0, 1fr); gap: var(--space-6); }
+}
+@media (max-width: 700px) {
+  .form { padding: var(--space-4); }
 }
 </style>

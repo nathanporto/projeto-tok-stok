@@ -218,3 +218,23 @@ textarea.input { min-height: 90px; resize: vertical; }
   border-bottom: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent);
 }
 .table tbody tr:hover { background: color-mix(in srgb, var(--color-text) 4%, transparent); }
+
+/* Blocos de página dentro de grids/flex podem encolher abaixo do conteúdo (ver .table-scroll). */
+.block, .card { min-width: 0; }
+
+/* Em telas estreitas a tabela rola dentro do próprio contêiner, sem alargar a página. */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.table-scroll > .table { min-width: 560px; }
+.table-scroll > .table th { white-space: nowrap; }
+
+@media (max-width: 700px) {
+  .table { font-size: 13px; }
+  .table-scroll > .table td { white-space: nowrap; }
+  .btn-ghost { padding-block: var(--space-2); }
+  /* Campo de busca ocupa a linha inteira em vez de uma largura fixa. */
+  .block-head .input[type="search"] { width: 100%; flex-basis: 100%; order: 3; }
+}

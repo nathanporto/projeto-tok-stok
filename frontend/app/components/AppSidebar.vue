@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const route = useRoute()
+const menu = useMenuMobile()
 
 const items = [
   { num: '01', label: 'Dashboard', to: '/dashboard' },
@@ -17,9 +18,12 @@ function isActive(to: string) {
 </script>
 
 <template>
-  <aside class="sidebar">
+  <aside id="menu-lateral" class="sidebar" :class="{ 'is-open': menu.aberto.value }">
     <div>
-      <h6 class="sidebar-title">Módulos</h6>
+      <div class="sidebar-top">
+        <h6 class="sidebar-title">Módulos</h6>
+        <button type="button" class="btn btn-ghost sidebar-close" aria-label="Fechar menu" @click="menu.fechar">Fechar</button>
+      </div>
       <nav class="sidebar-nav">
         <NuxtLink
           v-for="item in items"
@@ -58,11 +62,13 @@ function isActive(to: string) {
   padding: var(--space-8) var(--space-4);
   border-right: 1px solid var(--color-divider);
 }
+.sidebar-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3); }
 .sidebar-title {
-  margin: 0 0 var(--space-3);
+  margin: 0;
   padding-left: var(--space-2);
   color: color-mix(in srgb, var(--color-text) 55%, transparent);
 }
+.sidebar-close { display: none; }
 .sidebar-nav { display: flex; flex-direction: column; gap: 2px; }
 .sidebar-item {
   display: grid;
@@ -103,5 +109,24 @@ function isActive(to: string) {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--color-text) 45%, transparent);
+}
+
+/* Abaixo de 1100px o menu vira uma gaveta, aberta pelo botão "Menu" do cabeçalho. */
+@media (max-width: 1100px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 50;
+    width: min(280px, 85vw);
+    overflow-y: auto;
+    background: var(--color-bg);
+    padding: var(--space-6) var(--space-4);
+    display: none;
+  }
+  .sidebar.is-open { display: flex; }
+  .sidebar-close { display: inline-flex; }
+  .sidebar-item { padding-block: 12px; }
 }
 </style>

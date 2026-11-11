@@ -123,33 +123,35 @@ function limparFiltros() {
       </div>
     </form>
 
-    <table class="table">
-      <thead>
-        <tr>
-          <th style="width:52px">ID</th>
-          <th>Nome</th>
-          <th>Descrição</th>
-          <th style="width:90px;text-align:right">Produtos</th>
-          <th style="width:110px">Status</th>
-          <th style="width:150px">Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="c in store.categorias" :key="c.id">
-          <td class="num muted">{{ c.id }}</td>
-          <td class="strong">{{ c.nome }}</td>
-          <td class="small muted">{{ c.descricao || '—' }}</td>
-          <td class="num">{{ c.produtos_count ?? 0 }}</td>
-          <td><span class="tag" :class="c.status === 'ativa' ? 'tag-accent' : 'tag-neutral'">{{ c.status === 'ativa' ? 'Ativa' : 'Inativa' }}</span></td>
-          <td>
-            <div class="row-actions">
-              <button type="button" class="btn btn-ghost" @click="editar(c)">Alterar</button>
-              <button type="button" class="btn btn-ghost danger" @click="excluir(c)">Excluir</button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="table-scroll">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width:52px">ID</th>
+            <th>Nome</th>
+            <th>Descrição</th>
+            <th style="width:90px;text-align:right">Produtos</th>
+            <th style="width:110px">Status</th>
+            <th style="width:150px">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="c in store.categorias" :key="c.id">
+            <td class="num muted">{{ c.id }}</td>
+            <td class="strong">{{ c.nome }}</td>
+            <td class="small muted">{{ c.descricao || '—' }}</td>
+            <td class="num">{{ c.produtos_count ?? 0 }}</td>
+            <td><span class="tag" :class="c.status === 'ativa' ? 'tag-accent' : 'tag-neutral'">{{ c.status === 'ativa' ? 'Ativa' : 'Inativa' }}</span></td>
+            <td>
+              <div class="row-actions">
+                <button type="button" class="btn btn-ghost" @click="editar(c)">Alterar</button>
+                <button type="button" class="btn btn-ghost danger" @click="excluir(c)">Excluir</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     <p v-if="!store.carregando && store.categorias.length === 0" class="empty">
       {{ busca ? 'Nenhuma categoria encontrada com esse termo.' : 'Nenhuma categoria cadastrada ainda.' }}
     </p>
