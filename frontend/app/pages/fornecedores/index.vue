@@ -36,7 +36,12 @@ function novo() {
 
 function editar(f: Fornecedor) {
   editandoId.value = f.id
-  form.value = { nome: f.nome, cnpj: f.cnpj ?? '', telefone: f.telefone ?? '', email: f.email ?? '' }
+  form.value = {
+    nome: f.nome,
+    cnpj: f.cnpj ? aplicarMascara('cnpj', f.cnpj) : '',
+    telefone: f.telefone ? aplicarMascara('telefone', f.telefone) : '',
+    email: f.email ?? '',
+  }
   formAberto.value = true
 }
 
@@ -102,7 +107,7 @@ function limparFiltros() {
   <section class="block">
     <div class="block-head">
       <h6>Consultar fornecedores</h6>
-      <input v-model="busca" class="input search" type="search" placeholder="Buscar por nome, CNPJ ou e-mail…">
+      <input v-model="busca" class="input search" type="search" placeholder="Buscar por nome, CNPJ, telefone ou e-mail…">
       <span class="block-head__meta">{{ store.fornecedores.length }} fornecedor(es)</span>
     </div>
 
@@ -114,8 +119,8 @@ function limparFiltros() {
       </div>
       <div class="form-grid">
         <label class="field"><span>Nome</span><input v-model="form.nome" class="input" required placeholder="Nome da empresa"></label>
-        <label class="field"><span>CNPJ</span><input v-model="form.cnpj" class="input" placeholder="00.000.000/0000-00" maxlength="18"></label>
-        <label class="field"><span>Telefone</span><input v-model="form.telefone" class="input" placeholder="(11) 4321-0000" maxlength="20"></label>
+        <label class="field"><span>CNPJ</span><InputMascara v-model="form.cnpj" tipo="cnpj" /></label>
+        <label class="field"><span>Telefone</span><InputMascara v-model="form.telefone" tipo="telefone" /></label>
         <label class="field"><span>E-mail</span><input v-model="form.email" class="input" type="email" placeholder="contato@fornecedor.com.br"></label>
       </div>
       <div class="form-actions">
@@ -140,8 +145,8 @@ function limparFiltros() {
           <tr v-for="f in store.fornecedores" :key="f.id">
             <td class="num muted">{{ f.id }}</td>
             <td class="strong">{{ f.nome }}</td>
-            <td class="small muted">{{ f.cnpj || '—' }}</td>
-            <td class="small">{{ f.telefone || '—' }}</td>
+            <td class="small muted">{{ formatarCnpj(f.cnpj) }}</td>
+            <td class="small">{{ formatarTelefone(f.telefone) }}</td>
             <td class="small muted">{{ f.email || '—' }}</td>
             <td>
               <div class="row-actions">
